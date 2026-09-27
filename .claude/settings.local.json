@@ -1,7 +1,6 @@
 {
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": false,
-    "allowUnsandboxedCommands": false
+    "autoAllowBashIfSandboxed": false
   }
 }
