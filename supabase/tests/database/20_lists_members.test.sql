@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(17);
 
 select tests.create_user('owner@test');
 select tests.create_user('ed@test');
@@ -45,6 +45,7 @@ select throws_ok($$update public.list_members set role = 'owner' where user_id =
 select throws_ok($$update public.lists set owner_id = tests.user_id('ed@test')$$, '42501', null,
   'owner_id cannot be changed directly');
 select throws_ok($$insert into public.lists(name) values ('   ')$$, '23514', null, 'blank list name rejected');
+select lives_ok($$insert into public.lists(name) values ('Returned') returning id$$, 'insert … returning works for the creator');
 select isnt_empty($$select 1 from public.profiles where id = tests.user_id('ed@test')$$, 'owner sees a co-member''s profile');
 
 select tests.clear_authentication();
