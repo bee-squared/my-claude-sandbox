@@ -123,6 +123,7 @@ alter table public.task_status_events enable row level security;
 
 revoke all on table public.task_status_events from anon, authenticated;
 grant select on table public.task_status_events to authenticated;
+revoke all on sequence public.task_status_events_id_seq from anon, authenticated;
 
 create policy task_status_events_select on public.task_status_events
   for select to authenticated
