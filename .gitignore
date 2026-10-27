@@ -42,3 +42,6 @@ next-env.d.ts
 
 # pnpm
 .pnpm-store
+
+# claude code personal overrides
+.claude/settings.local.json
