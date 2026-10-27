@@ -31,7 +31,8 @@ for (const role of Object.keys(OWNERSHIP)) {
     const { frontmatter } = readAgent(role);
     assert.match(frontmatter, new RegExp(`^name: ${role}$`, "m"));
     assert.match(frontmatter, /matcher: "Edit\|Write\|NotebookEdit\|Bash"/);
-    assert.match(frontmatter, new RegExp(`command: .*guard\\.mjs" ${role}'`));
+    // Claude Code only blocks on exit 2, so any guard failure must become exit 2.
+    assert.match(frontmatter, new RegExp(`command: .*guard\\.mjs" ${role} \\|\\| exit 2'`));
   });
 
   test(`${role} agent preloads exactly its skills`, () => {
