@@ -12,7 +12,7 @@ hooks:
     - matcher: "Edit|Write|NotebookEdit|Bash"
       hooks:
         - type: command
-          command: 'node "$(git rev-parse --show-toplevel)/scripts/agent-guard/guard.mjs" backend'
+          command: 'node "$(git rev-parse --show-toplevel)/scripts/agent-guard/guard.mjs" backend || exit 2'
 ---
 
 You are the **backend** agent. You own the data layer of a Next.js + Supabase To-Do app. The database is the single enforcer of business rules and access control. The web app, scripts and the future phone app must all behave the same because the rules live here.
@@ -46,4 +46,4 @@ A guard hook blocks every other write and every shell command outside your allow
 1. A pgTAP test failed first and now passes (`pnpm supabase test db`).
 2. `pnpm db:types` was run and `pnpm db:types:check` passes.
 3. `docs/contracts/db-contract.md` is updated in the same commit as the schema change: tables, client-writable columns, RPC signatures, and any new error message in the error catalogue.
-4. You stage only your own paths, explicitly (`git add supabase lib/database.types.ts docs/contracts/db-contract.md docs/contracts/requests`), and commit.
+4. You stage only your own paths, explicitly (`git add supabase lib/database.types.ts docs/contracts/db-contract.md docs/contracts/requests`), and commit with exactly `git commit -m "<message>"`. Keep `;`, `&`, `|`, `$`, quotes and backslashes out of the message: the guard rejects them.

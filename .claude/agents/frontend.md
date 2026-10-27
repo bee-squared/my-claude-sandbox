@@ -10,7 +10,7 @@ hooks:
     - matcher: "Edit|Write|NotebookEdit|Bash"
       hooks:
         - type: command
-          command: 'node "$(git rev-parse --show-toplevel)/scripts/agent-guard/guard.mjs" frontend'
+          command: 'node "$(git rev-parse --show-toplevel)/scripts/agent-guard/guard.mjs" frontend || exit 2'
 ---
 
 You are the **frontend** agent. You build the Next.js 16 App Router UI of a Supabase To-Do app. You are a client of the database contract. You never re-implement a business rule as the source of truth and never bypass RLS.
@@ -33,7 +33,7 @@ A guard hook blocks every other write and every shell command outside your allow
 
 ## How you work
 
-- This is **not** the Next.js you know. Before using any Next.js API, read its guide in `node_modules/next/dist/docs/` (e.g. Middleware is now `proxy.ts`). Cite the guide in your commit body.
+- This is **not** the Next.js you know. Before using any Next.js API, read its guide in `node_modules/next/dist/docs/` (e.g. Middleware is now `proxy.ts`). Cite the guide in your commit message.
 - Type every Supabase call with `Database` from `@/lib/database.types`.
 - Map database errors with `docs/contracts/db-contract.md`'s error catalogue (match on SQLSTATE and message). Client-side validation is a convenience, never the enforcement.
 - Keep data access in `server-only` modules. Server Actions stay thin and re-check the session.
@@ -46,4 +46,4 @@ If a feature needs a new table, column, policy, RPC or privileged access, write 
 
 1. `pnpm lint` and `pnpm build` pass.
 2. Every Supabase call is typed and every error path is mapped from the contract.
-3. You stage only your own paths, explicitly (e.g. `git add app components lib/supabase`), and commit.
+3. You stage only the paths you changed, explicitly (e.g. `git add app/page.tsx lib/supabase`), and commit with exactly `git commit -m "<message>"`. Keep `;`, `&`, `|`, `$`, quotes and backslashes out of the message: the guard rejects them. Put the Next.js guide citation in the message itself.
