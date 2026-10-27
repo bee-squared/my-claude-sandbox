@@ -22,7 +22,7 @@ grant update (name, description, archived_at) on table public.lists to authentic
 
 create policy lists_select on public.lists
   for select to authenticated
-  using ((select private.has_list_role(id, 'viewer')));
+  using ((select private.has_list_role(id, 'viewer')) or owner_id = (select auth.uid()));
 
 create policy lists_insert on public.lists
   for insert to authenticated
