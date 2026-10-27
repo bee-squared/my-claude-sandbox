@@ -1,5 +1,5 @@
 begin;
-select plan(23);
+select plan(27);
 
 select tests.create_user('ann@test');
 select tests.create_user('bob@test');
@@ -88,7 +88,16 @@ select is((select count(*) from public.tasks where list_id = tests.list_id('Home
 select tests.authenticate_as('dan@test');
 select is_empty($$select 1 from public.tasks$$, 'non-member cannot read tasks');
 select table_privs_are('public', 'tasks', 'anon', array[]::text[]);
+-- no membership oracle for strangers: RLS error regardless of the probed value
+select throws_ok($$insert into public.tasks(list_id,title,assignee_id) values (tests.list_id('Home'),'X',tests.user_id('bob@test'))$$,
+  '42501', null, 'stranger probing a member assignee gets RLS error');
+select throws_ok($$insert into public.tasks(list_id,title,assignee_id) values (tests.list_id('Home'),'X',tests.user_id('dan@test'))$$,
+  '42501', null, 'stranger probing a non-member assignee gets RLS error');
+select throws_ok($$insert into public.tasks(list_id,title,status_id) values (tests.list_id('Home'),'X',tests.status_id('Dan status'))$$,
+  '42501', null, 'stranger probing status usability gets RLS error');
 select tests.clear_authentication();
+select throws_ok($$insert into public.tasks(list_id,title,status_id) values (tests.list_id('Home'),'X',tests.status_id('Dan status'))$$,
+  'P0001', 'status cannot be used in this list');  -- scripts without a caller are still checked
 
 select * from finish();
 rollback;

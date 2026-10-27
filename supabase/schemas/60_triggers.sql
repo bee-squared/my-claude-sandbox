@@ -169,6 +169,12 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- Signed-in non-editors are rejected by RLS; skipping here avoids leaking membership.
+  if (select auth.uid()) is not null
+     and not private.has_list_role(new.list_id, 'editor') then
+    return new;
+  end if;
+
   if tg_op = 'INSERT'
      or new.status_id is distinct from old.status_id
      or new.list_id is distinct from old.list_id then
@@ -201,6 +207,12 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- Signed-in non-editors are rejected by RLS; skipping here avoids leaking membership.
+  if (select auth.uid()) is not null
+     and not private.has_list_role(new.list_id, 'editor') then
+    return new;
+  end if;
+
   if new.assignee_id is not null and not exists (
     select 1 from public.list_members m
     where m.list_id = new.list_id and m.user_id = new.assignee_id
