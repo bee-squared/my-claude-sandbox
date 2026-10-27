@@ -94,3 +94,27 @@ create policy task_statuses_update on public.task_statuses
 create policy task_statuses_delete on public.task_statuses
   for delete to authenticated
   using (owner_id = (select auth.uid()));
+
+alter table public.tasks enable row level security;
+
+revoke all on table public.tasks from anon, authenticated;
+grant select, delete on table public.tasks to authenticated;
+grant insert (id, list_id, title, description, status_id, position, priority, assignee_id, blocked_reason, due_at) on table public.tasks to authenticated;
+grant update (list_id, title, description, status_id, position, priority, assignee_id, blocked_reason, due_at) on table public.tasks to authenticated;
+
+create policy tasks_select on public.tasks
+  for select to authenticated
+  using ((select private.has_list_role(list_id, 'viewer')));
+
+create policy tasks_insert on public.tasks
+  for insert to authenticated
+  with check ((select private.has_list_role(list_id, 'editor')));
+
+create policy tasks_update on public.tasks
+  for update to authenticated
+  using ((select private.has_list_role(list_id, 'editor')))
+  with check ((select private.has_list_role(list_id, 'editor')));
+
+create policy tasks_delete on public.tasks
+  for delete to authenticated
+  using ((select private.has_list_role(list_id, 'editor')));

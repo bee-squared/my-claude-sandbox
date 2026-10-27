@@ -77,3 +77,30 @@ $$;
 
 revoke execute on function private.can_read_status(uuid) from public, anon;
 grant execute on function private.can_read_status(uuid) to authenticated;
+
+create or replace function private.status_usable_in_list(status_id uuid, list_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.task_statuses s
+    where s.id = $1
+      and (
+        s.owner_id is null
+        or exists (
+          select 1
+          from public.list_members m
+          where m.list_id = $2
+            and m.user_id = s.owner_id
+            and m.role >= 'editor'
+        )
+      )
+  );
+$$;
+
+revoke execute on function private.status_usable_in_list(uuid, uuid) from public, anon;
+grant execute on function private.status_usable_in_list(uuid, uuid) to authenticated;

@@ -141,3 +141,98 @@ $$;
 create trigger task_statuses_normalize
   before insert or update of label, behavior, sort_order on public.task_statuses
   for each row execute function private.normalize_custom_status();
+
+create or replace function private.default_task_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status_id is null then
+    select s.id into new.status_id
+    from public.task_statuses s
+    where s.owner_id is null and s.behavior = 'todo';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger tasks_10_default_status
+  before insert on public.tasks
+  for each row execute function private.default_task_status();
+
+create or replace function private.check_task_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT'
+     or new.status_id is distinct from old.status_id
+     or new.list_id is distinct from old.list_id then
+    if not private.status_usable_in_list(new.status_id, new.list_id) then
+      raise exception 'status cannot be used in this list';
+    end if;
+  end if;
+
+  if tg_op = 'INSERT' or new.status_id is distinct from old.status_id then
+    if exists (
+      select 1 from public.task_statuses s
+      where s.id = new.status_id and s.archived_at is not null
+    ) then
+      raise exception 'archived status cannot be chosen';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger tasks_20_check_status
+  before insert or update of status_id, list_id on public.tasks
+  for each row execute function private.check_task_status();
+
+create or replace function private.check_task_assignee()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.assignee_id is not null and not exists (
+    select 1 from public.list_members m
+    where m.list_id = new.list_id and m.user_id = new.assignee_id
+  ) then
+    raise exception 'assignee must be a member of the list';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger tasks_30_check_assignee
+  before insert or update of assignee_id, list_id on public.tasks
+  for each row execute function private.check_task_assignee();
+
+create trigger tasks_90_touch_updated_at
+  before update on public.tasks
+  for each row execute function private.touch_updated_at();
+
+create or replace function private.clear_removed_member_assignments()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.tasks t
+  set assignee_id = null
+  where t.list_id = old.list_id and t.assignee_id = old.user_id;
+  return old;
+end;
+$$;
+
+create trigger list_members_clear_assignments
+  after delete on public.list_members
+  for each row execute function private.clear_removed_member_assignments();
