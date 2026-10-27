@@ -104,3 +104,40 @@ $$;
 create trigger list_members_owner_role_check
   before insert or update of role on public.list_members
   for each row execute function private.check_owner_role();
+
+create or replace function private.normalize_custom_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  builtin_sort smallint;
+begin
+  if new.owner_id is null then
+    return new;
+  end if;
+
+  new.label := btrim(new.label);
+
+  if exists (
+    select 1 from public.task_statuses s
+    where s.owner_id is null and lower(s.label) = lower(new.label)
+  ) then
+    raise exception 'status label matches a built-in status';
+  end if;
+
+  if tg_op = 'INSERT' and new.sort_order is null then
+    select s.sort_order + 1 into builtin_sort
+    from public.task_statuses s
+    where s.owner_id is null and s.behavior = new.behavior;
+    new.sort_order := builtin_sort;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger task_statuses_normalize
+  before insert or update of label, behavior, sort_order on public.task_statuses
+  for each row execute function private.normalize_custom_status();

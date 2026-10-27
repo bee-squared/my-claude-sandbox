@@ -66,3 +66,31 @@ create policy list_members_delete on public.list_members
 
 revoke execute on function public.transfer_list_ownership(uuid, uuid) from public, anon;
 grant execute on function public.transfer_list_ownership(uuid, uuid) to authenticated;
+
+alter table public.task_statuses enable row level security;
+
+revoke all on table public.task_statuses from anon, authenticated;
+grant select, delete on table public.task_statuses to authenticated;
+grant insert (id, owner_id, label, behavior, sort_order) on table public.task_statuses to authenticated;
+grant update (label, behavior, sort_order, archived_at) on table public.task_statuses to authenticated;
+
+create policy task_statuses_select on public.task_statuses
+  for select to authenticated
+  using (
+    owner_id is null
+    or owner_id = (select auth.uid())
+    or (select private.can_read_status(id))
+  );
+
+create policy task_statuses_insert on public.task_statuses
+  for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+
+create policy task_statuses_update on public.task_statuses
+  for update to authenticated
+  using (owner_id = (select auth.uid()))
+  with check (owner_id = (select auth.uid()));
+
+create policy task_statuses_delete on public.task_statuses
+  for delete to authenticated
+  using (owner_id = (select auth.uid()));

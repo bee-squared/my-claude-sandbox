@@ -55,3 +55,25 @@ revoke execute on function private.shares_list_with(uuid) from public, anon;
 grant execute on function private.list_role_of(uuid) to authenticated;
 grant execute on function private.has_list_role(uuid, public.list_role) to authenticated;
 grant execute on function private.shares_list_with(uuid) to authenticated;
+
+create or replace function private.can_read_status(status_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.task_statuses s
+    where s.id = $1
+      and (
+        s.owner_id is null
+        or s.owner_id = (select auth.uid())
+        or private.shares_list_with(s.owner_id)
+      )
+  );
+$$;
+
+revoke execute on function private.can_read_status(uuid) from public, anon;
+grant execute on function private.can_read_status(uuid) to authenticated;
