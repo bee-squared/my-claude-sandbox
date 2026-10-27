@@ -9,7 +9,9 @@
     "lint": "eslint",
     "supabase:start": "pnpm supabase start",
     "supabase:stop": "pnpm supabase stop",
-    "test:guard": "node --test scripts/agent-guard/"
+    "test:guard": "node --test scripts/agent-guard/",
+    "db:types": "mkdir -p lib && pnpm supabase gen types typescript --local > lib/database.types.ts",
+    "db:types:check": "node scripts/check-db-types.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
