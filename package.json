@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "supabase:start": "pnpm supabase start",
-    "supabase:stop": "pnpm supabase stop"
+    "supabase:stop": "pnpm supabase stop",
+    "test:guard": "node --test scripts/agent-guard/"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
