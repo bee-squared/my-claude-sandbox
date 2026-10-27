@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(26);
 
 select tests.create_user('ann@test');
 select tests.create_user('vi@test');
@@ -74,6 +74,9 @@ delete from public.lists where id = :'home_id';
 select is_empty(format('select 1 from public.task_status_events where task_id = %L', :'t_id'), 'deleting a list removes its tasks'' events');
 select is_empty(format('select 1 from public.list_members where list_id = %L', :'home_id'), 'deleting a list removes its memberships');
 select lives_ok($$delete from auth.users where id = tests.user_id('ann@test')$$, 'deleting a user with tasks in their custom status succeeds');
+
+select sequence_privs_are('public', 'task_status_events_id_seq', 'anon', array[]::text[]);
+select sequence_privs_are('public', 'task_status_events_id_seq', 'authenticated', array[]::text[]);
 
 select * from finish();
 rollback;
