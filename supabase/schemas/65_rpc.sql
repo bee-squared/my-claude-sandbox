@@ -6,6 +6,7 @@ set search_path = ''
 as $$
 declare
   current_owner uuid;
+  promoted integer;
 begin
   select l.owner_id into current_owner
   from public.lists l
@@ -20,11 +21,14 @@ begin
     return;
   end if;
 
-  if not exists (
-    select 1 from public.list_members m
-    where m.list_id = transfer_list_ownership.list_id
-      and m.user_id = transfer_list_ownership.new_owner
-  ) then
+  -- Lock the target's membership row so a concurrent leave blocks until we commit.
+  perform 1
+  from public.list_members m
+  where m.list_id = transfer_list_ownership.list_id
+    and m.user_id = transfer_list_ownership.new_owner
+  for update;
+
+  if not found then
     raise exception 'new owner must already be a member of the list';
   end if;
 
@@ -41,5 +45,10 @@ begin
   set role = 'owner'
   where m.list_id = transfer_list_ownership.list_id
     and m.user_id = transfer_list_ownership.new_owner;
+
+  get diagnostics promoted = row_count;
+  if promoted <> 1 then
+    raise exception 'new owner must already be a member of the list';
+  end if;
 end;
 $$;
