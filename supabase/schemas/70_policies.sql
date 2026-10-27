@@ -63,3 +63,6 @@ create policy list_members_delete on public.list_members
     (select private.has_list_role(list_id, 'owner'))
     or (user_id = (select auth.uid()) and role <> 'owner')
   );
+
+revoke execute on function public.transfer_list_ownership(uuid, uuid) from public, anon;
+grant execute on function public.transfer_list_ownership(uuid, uuid) to authenticated;
