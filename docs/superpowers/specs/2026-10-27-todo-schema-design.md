@@ -101,7 +101,7 @@ Seven rows in `task_statuses` with `owner_id` null, one per behaviour. Seeded by
 
 ### Which statuses a list's board shows (v1)
 
-Not a schema concern, noted for the builder of the UI. Until per-list settings exist, a board shows the seven built-ins plus the viewing user's own non-archived custom statuses, plus any other status a task in that list currently uses. That last case only arises once sharing exists.
+Not a schema concern, noted for the builder of the UI. Until per-list settings exist, a board shows the seven built-ins plus the viewing user's own non-archived custom statuses, plus any other status a task in that list currently uses. That last case only arises once sharing exists. For example, an editor uses their own status on a task, then leaves the list. The task-in-use clause of the custom-status read rule (see Access control) guarantees the board can read every status in that last case.
 
 ## Tables
 
@@ -163,7 +163,14 @@ Indexes:
 
 Check: built-ins have `archived_at` null.
 
-**On delete cascade of `owner_id`:** if a user is deleted, their custom statuses go too. In v1 their lists go with them, so nothing dangles. Once sharing exists, a deleted user's status could still be used on a shared list's tasks. The `restrict` foreign key from `tasks` would then block the user deletion. The sharing design must decide what happens, for example reassigning those tasks to the built-in with the same behaviour. *Flagged for the sharing pass.*
+**On delete cascade of `owner_id`:** if a user is deleted, their custom statuses go too. In v1 their lists go with them, so nothing dangles. Once sharing exists, a deleted user's status could still be used on a shared list's tasks, or appear in those tasks' history. Three foreign keys can then block the user deletion:
+- `tasks.status_id`
+- `task_status_events.from_status_id`
+- `task_status_events.to_status_id`
+
+Moving the tasks off the status is not enough: their history rows keep pointing at it, so the deletion still fails with 23503. The case is reachable today, because an owner can insert `list_members` rows directly.
+
+The sharing design must decide what happens. One option is a `BEFORE DELETE` trigger on custom `task_statuses` that repoints both the tasks and their history rows to the built-in with the same behaviour. That fits as an addition. The behaviour snapshots (`from_behavior`, `to_behavior`) keep reports true after the repoint. *Flagged for the sharing pass.*
 
 ### tasks
 
@@ -245,17 +252,25 @@ RLS is on for every table. `anon` has no grants; everything below is for `authen
 | list_members | Members of the same list | Owner | Owner (role changes) | Owner; or a non-owner removing themselves |
 | tasks | Viewer and up | Editor and up | Editor and up, in both the old and the new list | Editor and up |
 | task_statuses, built-in | Everyone | Nobody | Nobody | Nobody |
-| task_statuses, custom | Its owner; and anyone who shares a list with its owner | Anyone, with `owner_id` = themselves | Owner | Owner (subject to rule 10) |
+| task_statuses, custom | Its owner; anyone who shares a list with its owner; and anyone who can read a task that uses it | Anyone, with `owner_id` = themselves | Owner | Owner (subject to rule 10) |
 | task_status_events | Viewer and up of the task's list | Triggers only | Nobody | Nobody |
 | profiles | Yourself, and anyone you share a list with | Trigger only | Yourself | Nobody |
 
 The second read clause on custom statuses ("shares a list with its owner") does nothing in v1. It is there so that sharing needs no policy change: a collaborator can see and pick your "Waiting for parts" on a shared list, matching rule 6. Status labels are not sensitive, so seeing a co-member's statuses beyond that one list is acceptable. *Claude's call.*
 
+The third read clause ("anyone who can read a task that uses it") covers a status whose owner no longer shares a list with the reader. For example, an editor puts a task in their own "QA done" (works like Completed), then leaves the list. Without the clause, the remaining members could still see the task but not its status's label or behaviour, so open/done logic and the board would break on it. That would defeat the anti-goal "Features that break on custom statuses". The clause matches what the board must show (see "Which statuses a list's board shows"), and an earlier draft of this table contradicted that section. It adds nothing beyond what the reader's own lists already show. *Resolved during implementation.*
+
+**Adding members without consent (open, for the invitations pass).** An owner can insert a `list_members` row for any user id, without that user agreeing, and can then transfer ownership to them. The new member's profile and custom status labels become visible to the list's members. This matches the table above, and it is harmless while sharing has no UI. Requiring consent will mean changing the `list_members` insert policy, which goes against the anti-goal "a schema that has to be rebuilt for sharing". One way to satisfy both:
+- When invitations land, allow direct `list_members` inserts only from `accept_invitation` and other server-side callers (`auth.uid()` is null), and route owners through `list_invitations`.
+- Make `invited_by` default to `auth.uid()` and drop it from the client insert grant, so it can be trusted as an audit trail.
+
+*Flagged for the invitations pass.*
+
 Helpers, all `SECURITY DEFINER`, `STABLE`, `set search_path = ''`, in schema `private`, which is not exposed through the API:
 
 - `private.list_role_of(list_id uuid) returns list_role`: the caller's role, or null
 - `private.has_list_role(list_id uuid, min_role list_role) returns boolean`
-- `private.can_read_status(status_id uuid) returns boolean`: for the custom-status read policy
+- `private.can_read_status(status_id uuid) returns boolean`: for the custom-status read policy; true for a built-in, the caller's own status, a status whose owner shares a list with the caller, or a status a task in a list the caller can read uses
 
 Policies call them as `(select private.has_list_role(list_id, 'editor'))`.
 
@@ -267,7 +282,7 @@ Each item below is a new table or function. None changes a table above.
 | --- | --- |
 | Per-list status settings | `list_statuses (list_id, status_id, hidden, label_override, sort_order, is_default)`: hide, rename or reorder per list, and a per-list starting status. Also the natural place for an optional per-list nudge if column limits are ever wanted. When it lands, rule 5 checks it first and falls back to built-in To Do. |
 | Sharing statuses in shared lists | Comes with `list_statuses`: members can see and pick statuses enabled on the list |
-| Invitations | `list_invitations` plus `accept_invitation` RPC |
+| Invitations | `list_invitations` plus `accept_invitation` RPC. Must also settle "Adding members without consent" (Access control), which may narrow the `list_members` insert policy, the one known exception to "no policy change". |
 | Steps | `task_steps (task_id, …)` |
 | Reminders and repeats | Their own design pass; tables pointing at `tasks` |
 | Realtime | `alter publication supabase_realtime add table tasks` |
