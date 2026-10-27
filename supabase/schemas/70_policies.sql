@@ -118,3 +118,12 @@ create policy tasks_update on public.tasks
 create policy tasks_delete on public.tasks
   for delete to authenticated
   using ((select private.has_list_role(list_id, 'editor')));
+
+alter table public.task_status_events enable row level security;
+
+revoke all on table public.task_status_events from anon, authenticated;
+grant select on table public.task_status_events to authenticated;
+
+create policy task_status_events_select on public.task_status_events
+  for select to authenticated
+  using (exists (select 1 from public.tasks t where t.id = task_id));

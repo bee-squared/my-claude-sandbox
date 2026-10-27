@@ -248,3 +248,121 @@ $$;
 create trigger list_members_clear_assignments
   after delete on public.list_members
   for each row execute function private.clear_removed_member_assignments();
+
+-- Runs for writes that RLS will reject too, so it must never raise.
+create or replace function private.apply_status_effects()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  old_behavior public.status_behavior;
+  new_behavior public.status_behavior;
+  old_terminal boolean := false;
+  new_terminal boolean;
+begin
+  -- A WHEN clause cannot reference OLD in an insert-or-update trigger, so no-op writes are skipped here.
+  if tg_op = 'UPDATE' and old.status_id is not distinct from new.status_id then
+    return new;
+  end if;
+
+  select s.behavior into new_behavior from public.task_statuses s where s.id = new.status_id;
+  new_terminal := coalesce(public.is_terminal(new_behavior), false);
+
+  if tg_op = 'UPDATE' then
+    select s.behavior into old_behavior from public.task_statuses s where s.id = old.status_id;
+    old_terminal := coalesce(public.is_terminal(old_behavior), false);
+  end if;
+
+  new.status_changed_at := now();
+
+  if not new_terminal then
+    new.completed_at := null;
+  elsif not old_terminal then
+    new.completed_at := now();
+  end if;
+
+  if old_behavior = 'blocked' and new_behavior is distinct from 'blocked' then
+    new.blocked_reason := null;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger tasks_40_status_effects
+  before insert or update of status_id on public.tasks
+  for each row execute function private.apply_status_effects();
+
+create or replace function private.record_status_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  old_behavior public.status_behavior;
+  new_behavior public.status_behavior;
+begin
+  if tg_op = 'UPDATE' then
+    if old.status_id is not distinct from new.status_id then
+      return null;
+    end if;
+    select s.behavior into old_behavior from public.task_statuses s where s.id = old.status_id;
+  end if;
+
+  select s.behavior into new_behavior from public.task_statuses s where s.id = new.status_id;
+
+  insert into public.task_status_events (task_id, from_status_id, to_status_id, from_behavior, to_behavior)
+  values (
+    new.id,
+    case when tg_op = 'UPDATE' then old.status_id end,
+    new.status_id,
+    old_behavior,
+    new_behavior
+  );
+  return null;
+end;
+$$;
+
+create trigger tasks_after_status_event
+  after insert or update of status_id on public.tasks
+  for each row execute function private.record_status_event();
+
+create or replace function private.guard_status_behavior()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.behavior is distinct from new.behavior
+     and exists (select 1 from public.tasks t where t.status_id = old.id) then
+    raise exception 'status behavior cannot change while tasks use it';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger task_statuses_guard_behavior
+  before update of behavior on public.task_statuses
+  for each row execute function private.guard_status_behavior();
+
+-- The events FK cascade is queued behind the status FK checks when a user delete cascades
+-- through lists and custom statuses. Removing the events up front keeps that delete working.
+create or replace function private.delete_task_status_events()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from public.task_status_events e where e.task_id = old.id;
+  return old;
+end;
+$$;
+
+create trigger tasks_before_delete_events
+  before delete on public.tasks
+  for each row execute function private.delete_task_status_events();
