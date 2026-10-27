@@ -27,7 +27,7 @@ select is((select count(*) from public.list_members where list_id = tests.list_i
   1::bigint, 'exactly one owner');
 select is((select owner_id from public.lists where id = tests.list_id('Home')),
   tests.user_id('ed@test'), 'lists.owner_id updated');
-select is((select role from public.list_members where user_id = tests.user_id('own@test')),
+select is((select role from public.list_members where list_id = tests.list_id('Home') and user_id = tests.user_id('own@test')),
   'editor'::public.list_role, 'old owner is editor');
 select function_privs_are('public', 'transfer_list_ownership', array['uuid','uuid'], 'anon', array[]::text[]);
 

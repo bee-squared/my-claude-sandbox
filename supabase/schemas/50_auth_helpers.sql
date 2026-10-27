@@ -71,6 +71,12 @@ as $$
         s.owner_id is null
         or s.owner_id = (select auth.uid())
         or private.shares_list_with(s.owner_id)
+        or exists (
+          select 1
+          from public.tasks t
+          where t.status_id = s.id
+            and private.has_list_role(t.list_id, 'viewer')
+        )
       )
   );
 $$;

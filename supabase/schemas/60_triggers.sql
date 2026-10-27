@@ -213,11 +213,16 @@ begin
     return new;
   end if;
 
-  if new.assignee_id is not null and not exists (
-    select 1 from public.list_members m
+  if new.assignee_id is not null then
+    -- for key share blocks a concurrent leave (delete) of the assignee's membership row.
+    perform 1
+    from public.list_members m
     where m.list_id = new.list_id and m.user_id = new.assignee_id
-  ) then
-    raise exception 'assignee must be a member of the list';
+    for key share;
+
+    if not found then
+      raise exception 'assignee must be a member of the list';
+    end if;
   end if;
   return new;
 end;

@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(18);
 
 select tests.create_user('owner@test');
 select tests.create_user('ed@test');
@@ -19,6 +19,9 @@ select is((select role from public.list_members where list_id = tests.list_id('H
 select tests.authenticate_as('stranger@test');
 select is_empty($$select 1 from public.lists$$, 'non-member cannot read the list');
 select is_empty($$select 1 from public.list_members$$, 'non-member cannot read members');
+
+select throws_ok($$insert into public.list_members(list_id, user_id, role)
+  values (tests.list_id('Home'), tests.user_id('stranger@test'), 'viewer')$$, '42501', null, 'stranger cannot add themselves');
 
 select tests.authenticate_as('ed@test');
 select throws_ok($$insert into public.list_members(list_id,user_id,role)
