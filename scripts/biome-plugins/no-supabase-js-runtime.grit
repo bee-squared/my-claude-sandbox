@@ -1,0 +1,5 @@
+`import $clause from $source` as $e where {
+  $source <: `"@supabase/supabase-js"`,
+  $e <: not r"import type .*",
+  register_diagnostic(span=$e, message="Use @supabase/ssr clients from @/lib/supabase", severity="error")
+}
