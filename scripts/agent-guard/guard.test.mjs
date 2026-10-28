@@ -90,6 +90,7 @@ test("allowed Bash commands pass", () => {
   allowed("backend", bash("pnpm supabase test db"));
   allowed("backend", bash("pnpm db:types && git add lib/database.types.ts"));
   allowed("frontend", bash("pnpm lint"));
+  allowed("frontend", bash("pnpm lint:fix"));
   allowed("frontend", bash("git diff -- app"));
 });
 
@@ -100,6 +101,12 @@ test("Bash outside the role's allowlist is denied", () => {
     "agent-guard: frontend may not run: pnpm supabase db reset",
   );
   denied("backend", bash("pnpm build"), "agent-guard: backend may not run: pnpm build");
+  denied("backend", bash("pnpm lint:fix"), "agent-guard: backend may not run: pnpm lint:fix");
+  denied(
+    "frontend",
+    bash("pnpm lint:fix supabase"),
+    "agent-guard: frontend may not run: pnpm lint:fix supabase",
+  );
   denied(
     "backend",
     bash("pnpm supabase db push"),
