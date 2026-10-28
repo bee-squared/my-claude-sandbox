@@ -1,7 +1,7 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { test } from "node:test";
 import { OWNERSHIP } from "./ownership.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -23,7 +23,12 @@ function readAgent(role) {
 
 function listedSkills(frontmatter) {
   const block = frontmatter.match(/^skills:\n((?:\s+- .+\n)+)/m);
-  return block ? block[1].trim().split("\n").map((line) => line.replace(/^\s*- /, "").trim()) : [];
+  return block
+    ? block[1]
+        .trim()
+        .split("\n")
+        .map((line) => line.replace(/^\s*- /, "").trim())
+    : [];
 }
 
 for (const role of Object.keys(OWNERSHIP)) {
