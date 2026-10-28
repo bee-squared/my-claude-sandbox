@@ -34,7 +34,7 @@ function runBiome(cwd, filePath) {
 // sandbox, and asserts Biome ran, the config parsed and both plugins compiled and fired. Without
 // this, "allows" and "ignores" assertions would pass vacuously on a broken setup.
 //
-// `generatedTypesOnlyByOverride` removes `!lib/database.types.ts` from the copy's `files.includes`,
+// `generatedTypesOnlyByOverride` removes `!**/database.types.ts` from the copy's `files.includes`,
 // so the file is excluded by the override alone and not by the global ignore.
 function lint(filePath, source, { generatedTypesOnlyByOverride = false } = {}) {
   const sandbox = mkdtempSync(path.join(tmpdir(), "biome-probe-"));
@@ -43,7 +43,7 @@ function lint(filePath, source, { generatedTypesOnlyByOverride = false } = {}) {
     delete config.$schema;
     delete config.vcs; // the sandbox is not a git repo
     if (generatedTypesOnlyByOverride) {
-      config.files.includes = config.files.includes.filter((p) => p !== "!lib/database.types.ts");
+      config.files.includes = config.files.includes.filter((p) => p !== "!**/database.types.ts");
     }
     writeFileSync(path.join(sandbox, "biome.json"), JSON.stringify(config));
     cpSync(path.join(root, "scripts/biome-plugins"), path.join(sandbox, "scripts/biome-plugins"), {

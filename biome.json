@@ -11,7 +11,7 @@
       "!!**/.claude",
       "!!**/.superpowers",
       "!!**/supabase",
-      "!lib/database.types.ts",
+      "!**/database.types.ts",
       "!next-env.d.ts",
       "!public"
     ]
