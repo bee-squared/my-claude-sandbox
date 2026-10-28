@@ -26,6 +26,24 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Linting and formatting
+
+This project uses [Biome](https://biomejs.dev) for both.
+
+- `pnpm lint` runs `biome check` with warnings treated as errors.
+- `pnpm lint:fix` auto-fixes `app/` and `lib/`.
+- `pnpm format` formats the repo.
+
+The Supabase guardrails are GritQL plugins in `scripts/biome-plugins/`, tested by `pnpm test:guard`.
+
+One-time setup so blame skips the Biome reformat commit:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+In VS Code, install the recommended Biome extension (`biomejs.biome`). It formats on save.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

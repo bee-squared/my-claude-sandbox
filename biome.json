@@ -9,6 +9,7 @@
     "includes": [
       "**",
       "!!**/.claude",
+      "!!**/.superpowers",
       "!!**/supabase",
       "!lib/database.types.ts",
       "!next-env.d.ts",
