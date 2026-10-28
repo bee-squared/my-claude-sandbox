@@ -1,5 +1,5 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
 import { check } from "./guard.mjs";
 
 const root = "/repo";
@@ -71,7 +71,11 @@ test("Write and NotebookEdit are checked like Edit", () => {
 });
 
 test("traversal is resolved before matching", () => {
-  denied("frontend", edit("app/../supabase/a.sql"), "agent-guard: frontend may not write supabase/a.sql");
+  denied(
+    "frontend",
+    edit("app/../supabase/a.sql"),
+    "agent-guard: frontend may not write supabase/a.sql",
+  );
 });
 
 test("paths outside the repo are denied", () => {
@@ -90,9 +94,17 @@ test("allowed Bash commands pass", () => {
 });
 
 test("Bash outside the role's allowlist is denied", () => {
-  denied("frontend", bash("pnpm supabase db reset"), "agent-guard: frontend may not run: pnpm supabase db reset");
+  denied(
+    "frontend",
+    bash("pnpm supabase db reset"),
+    "agent-guard: frontend may not run: pnpm supabase db reset",
+  );
   denied("backend", bash("pnpm build"), "agent-guard: backend may not run: pnpm build");
-  denied("backend", bash("pnpm supabase db push"), "agent-guard: backend may not run: pnpm supabase db push");
+  denied(
+    "backend",
+    bash("pnpm supabase db push"),
+    "agent-guard: backend may not run: pnpm supabase db push",
+  );
   denied(
     "backend",
     bash("pnpm supabase link --project-ref x"),
@@ -102,7 +114,11 @@ test("Bash outside the role's allowlist is denied", () => {
 });
 
 test("compound Bash checks every segment", () => {
-  denied("frontend", bash("pnpm lint && rm -rf supabase"), "agent-guard: frontend may not run: rm -rf supabase");
+  denied(
+    "frontend",
+    bash("pnpm lint && rm -rf supabase"),
+    "agent-guard: frontend may not run: rm -rf supabase",
+  );
 });
 
 test("redirects and substitutions are denied", () => {
@@ -116,7 +132,11 @@ test("git add checks each staged path", () => {
   allowed("frontend", bash("git add app components/ui lib/supabase"));
   denied("frontend", bash("git add app supabase"), "agent-guard: frontend may not stage supabase");
   denied("frontend", bash("git add lib"), "agent-guard: frontend may not stage lib");
-  denied("backend", bash("git add -- app/page.tsx"), "agent-guard: backend may not stage app/page.tsx");
+  denied(
+    "backend",
+    bash("git add -- app/page.tsx"),
+    "agent-guard: backend may not stage app/page.tsx",
+  );
 });
 
 test("git add without explicit owned paths is denied", () => {
@@ -135,9 +155,21 @@ test("background operator, process substitution, quotes and escapes are shell fe
 });
 
 test("allowlisted commands that can run code or write files are denied", () => {
-  denied("frontend", bash("rg --pre sh . app/evil.sh"), "agent-guard: frontend may not run: rg --pre sh . app/evil.sh");
-  denied("frontend", bash("pnpm lint -c app/evil.mjs"), "agent-guard: frontend may not run: pnpm lint -c app/evil.mjs");
-  denied("frontend", bash("pnpm exec tsc --noEmit false"), "agent-guard: frontend may not run: pnpm exec tsc --noEmit false");
+  denied(
+    "frontend",
+    bash("rg --pre sh . app/evil.sh"),
+    "agent-guard: frontend may not run: rg --pre sh . app/evil.sh",
+  );
+  denied(
+    "frontend",
+    bash("pnpm lint -c app/evil.mjs"),
+    "agent-guard: frontend may not run: pnpm lint -c app/evil.mjs",
+  );
+  denied(
+    "frontend",
+    bash("pnpm exec tsc --noEmit false"),
+    "agent-guard: frontend may not run: pnpm exec tsc --noEmit false",
+  );
   denied(
     "frontend",
     bash("git diff --output=supabase/schemas/x.sql"),
@@ -152,14 +184,25 @@ test("allowlisted commands that can run code or write files are denied", () => {
 
 test("git commit allows only a plain -m message", () => {
   allowed("frontend", bash('git commit -m "feat: add list page"'));
-  allowed("backend", bash('pnpm db:types && git add lib/database.types.ts && git commit -m "chore: regen types"'));
-  for (const command of ["git commit -a -m x", "git commit --amend --no-edit", "git commit -m x supabase/a.sql"]) {
+  allowed(
+    "backend",
+    bash('pnpm db:types && git add lib/database.types.ts && git commit -m "chore: regen types"'),
+  );
+  for (const command of [
+    "git commit -a -m x",
+    "git commit --amend --no-edit",
+    "git commit -m x supabase/a.sql",
+  ]) {
     denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
   }
 });
 
 test("git add cannot reach the excluded generated types", () => {
-  denied("frontend", bash("git add lib/database.types.ts"), "agent-guard: frontend may not stage lib/database.types.ts");
+  denied(
+    "frontend",
+    bash("git add lib/database.types.ts"),
+    "agent-guard: frontend may not stage lib/database.types.ts",
+  );
   denied(
     "frontend",
     bash("git add app/../lib/database.types.ts"),
@@ -169,7 +212,11 @@ test("git add cannot reach the excluded generated types", () => {
 });
 
 test("case variants of excluded paths are denied", () => {
-  denied("frontend", edit("lib/Database.types.ts"), "agent-guard: frontend may not write lib/Database.types.ts");
+  denied(
+    "frontend",
+    edit("lib/Database.types.ts"),
+    "agent-guard: frontend may not write lib/Database.types.ts",
+  );
 });
 
 test("backend supabase commands are limited to local subcommands", () => {
@@ -198,7 +245,11 @@ test("backend supabase commands are limited to local subcommands", () => {
 });
 
 test("frontend cannot read local Supabase secrets via status", () => {
-  denied("frontend", bash("pnpm supabase status -o env"), "agent-guard: frontend may not run: pnpm supabase status -o env");
+  denied(
+    "frontend",
+    bash("pnpm supabase status -o env"),
+    "agent-guard: frontend may not run: pnpm supabase status -o env",
+  );
 });
 
 test("malformed input fails closed for guarded tools", () => {
