@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "lint:fix": "biome check --write app components lib proxy.ts",
     "supabase:start": "pnpm supabase start",
     "supabase:stop": "pnpm supabase stop",
     "test:guard": "node --test scripts/agent-guard/",
@@ -21,6 +23,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
