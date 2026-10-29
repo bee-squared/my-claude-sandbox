@@ -42,3 +42,6 @@ next-env.d.ts
 
 # pnpm
 .pnpm-store
+
+# brainstorming companion
+.superpowers/
