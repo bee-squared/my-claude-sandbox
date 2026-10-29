@@ -10,7 +10,7 @@
       "**",
       "!!**/.claude",
       "!!**/.superpowers",
-      "!!**/supabase",
+      "!!supabase",
       "!**/database.types.ts",
       "!next-env.d.ts",
       "!public"
