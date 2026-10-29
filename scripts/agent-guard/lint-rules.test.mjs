@@ -115,6 +115,12 @@ test("denies optional-chaining secret key", () => {
   denies("app/probe.ts", "export const k = process?.env.SUPABASE_SECRET_KEY;\n", SECRET_MSG);
 });
 
+// The root supabase/ ignore must not also match a nested folder of the same name.
+test("denies both guardrails in lib/supabase", () => {
+  denies("lib/supabase/probe.ts", DOT_SECRET, SECRET_MSG);
+  denies("lib/supabase/probe.ts", IMPORT_CONTROL, IMPORT_MSG);
+});
+
 test("allows secret key outside frontend paths", () => {
   allows("scripts/probe.mjs", DOT_SECRET, SECRET_MSG);
 });
