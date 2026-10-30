@@ -31,7 +31,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 This project uses [Biome](https://biomejs.dev) for both.
 
 - `pnpm lint` runs `biome check` with warnings treated as errors.
-- `pnpm lint:fix` auto-fixes `app/` and `lib/`.
+- `pnpm lint:fix` auto-fixes `app/`, `components/`, `lib/` and `proxy.ts`.
 - `pnpm format` formats the repo.
 
 The Supabase guardrails are GritQL plugins in `scripts/biome-plugins/`, tested by `pnpm test:guard`.

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "biome check --error-on-warnings",
     "format": "biome format --write",
-    "lint:fix": "biome check --write app lib",
+    "lint:fix": "biome check --write app components lib proxy.ts",
     "supabase:start": "pnpm supabase start",
     "supabase:stop": "pnpm supabase stop",
     "test:guard": "node --test scripts/agent-guard/",
