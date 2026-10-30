@@ -141,13 +141,24 @@ test("an rtk prefix is checked as the command it wraps", () => {
   allowed("frontend", bash("rtk git status"));
   allowed("frontend", bash("rtk git diff -- app"));
   allowed("frontend", bash("pnpm lint && rtk git log --oneline"));
-  for (const command of ["rtk git diff --output=supabase/x.sql", "rtk rtk git status", "rtk pnpm add zod"]) {
+  for (const command of [
+    "rtk git diff --output=supabase/x.sql",
+    "rtk rtk git status",
+    "rtk pnpm add zod",
+  ]) {
     denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
   }
 });
 
 test("helpers may not stage", () => {
-  for (const command of ["git add app", "git add -- supabase", "git add -A", "git add .", "git -C . add app", "rtk git add app"]) {
+  for (const command of [
+    "git add app",
+    "git add -- supabase",
+    "git add -A",
+    "git add .",
+    "git -C . add app",
+    "rtk git add app",
+  ]) {
     denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
   }
 });
@@ -189,7 +200,11 @@ test("allowlisted commands that can run code or write files are denied", () => {
 });
 
 test("helpers may not commit, even inside a compound command", () => {
-  denied("frontend", bash('git commit -m "feat: x"'), 'agent-guard: frontend may not run: git commit -m "feat: x"');
+  denied(
+    "frontend",
+    bash('git commit -m "feat: x"'),
+    'agent-guard: frontend may not run: git commit -m "feat: x"',
+  );
   denied(
     "backend",
     bash('pnpm db:types && git commit -m "chore: regen types"'),
@@ -202,9 +217,19 @@ test("helpers may not commit, even inside a compound command", () => {
 
 test("helpers may not push, move branches, rewrite history or use gh", () => {
   for (const command of [
-    "git push", "git push origin agent/x", "rtk git push", "git reset --hard", "git checkout main",
-    "git switch main", "git rebase main", "git merge main", "git stash", "git tag v1",
-    "gh pr create --draft", "gh api user", "rtk gh pr list",
+    "git push",
+    "git push origin agent/x",
+    "rtk git push",
+    "git reset --hard",
+    "git checkout main",
+    "git switch main",
+    "git rebase main",
+    "git merge main",
+    "git stash",
+    "git tag v1",
+    "gh pr create --draft",
+    "gh api user",
+    "rtk gh pr list",
   ]) {
     denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
   }
