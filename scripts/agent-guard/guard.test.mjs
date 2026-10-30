@@ -188,35 +188,6 @@ test("allowlisted commands that can run code or write files are denied", () => {
   );
 });
 
-<<<<<<< HEAD
-test("git commit allows only a plain -m message", () => {
-  allowed("frontend", bash('git commit -m "feat: add list page"'));
-  allowed(
-    "backend",
-    bash('pnpm db:types && git add lib/database.types.ts && git commit -m "chore: regen types"'),
-  );
-  for (const command of [
-    "git commit -a -m x",
-    "git commit --amend --no-edit",
-    "git commit -m x supabase/a.sql",
-  ]) {
-    denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
-  }
-});
-
-test("git add cannot reach the excluded generated types", () => {
-  denied(
-    "frontend",
-    bash("git add lib/database.types.ts"),
-    "agent-guard: frontend may not stage lib/database.types.ts",
-  );
-  denied(
-    "frontend",
-    bash("git add app/../lib/database.types.ts"),
-    "agent-guard: frontend may not stage app/../lib/database.types.ts",
-  );
-  denied("frontend", bash("git add lib/*"), "agent-guard: frontend may not run: git add lib/*");
-=======
 test("helpers may not commit, even inside a compound command", () => {
   denied("frontend", bash('git commit -m "feat: x"'), 'agent-guard: frontend may not run: git commit -m "feat: x"');
   denied(
@@ -237,7 +208,6 @@ test("helpers may not push, move branches, rewrite history or use gh", () => {
   ]) {
     denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
   }
->>>>>>> eaa84fb (docs: orchestrator owns git; agent git workflow for VMs)
 });
 
 test("case variants of excluded paths are denied", () => {
