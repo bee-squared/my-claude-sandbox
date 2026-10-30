@@ -189,7 +189,8 @@ test("allows inline all-type supabase-js import", () => {
   );
 });
 
-test("allows type-only imports and exports containing comments", () => {
+// Deliberate: the plugin doesn't parse comments, so any comment inside the statement is denied.
+test("denies type-only imports and exports containing comments", () => {
   for (const source of [
     'import { type A, /* note */ type B } from "@supabase/supabase-js";\n',
     'import { /* note */ type A } from "@supabase/supabase-js";\n',
@@ -202,7 +203,17 @@ test("allows type-only imports and exports containing comments", () => {
     'export { type A, /* note */ type B } from "@supabase/supabase-js";\n',
     'export /* note */ type { A } from "@supabase/supabase-js";\n',
   ]) {
-    allows("lib/probe.ts", source, IMPORT_MSG);
+    denies("lib/probe.ts", source, IMPORT_MSG);
+  }
+});
+
+test("denies a runtime binding after a line comment, for every line terminator", () => {
+  for (const terminator of ["\r", "\n", "\r\n", "\u2028", "\u2029"]) {
+    denies(
+      "lib/probe.ts",
+      `import { type A, // note${terminator} createClient, // end\n } from "@supabase/supabase-js";\n`,
+      IMPORT_MSG,
+    );
   }
 });
 
