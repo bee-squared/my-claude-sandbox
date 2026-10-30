@@ -88,10 +88,12 @@ test("paths outside the repo are denied", () => {
 
 test("allowed Bash commands pass", () => {
   allowed("backend", bash("pnpm supabase test db"));
-  allowed("backend", bash("pnpm db:types && git add lib/database.types.ts"));
+  allowed("backend", bash("pnpm db:types && pnpm db:types:check"));
   allowed("frontend", bash("pnpm lint"));
   allowed("frontend", bash("pnpm lint:fix"));
   allowed("frontend", bash("git diff -- app"));
+  allowed("frontend", bash("git status"));
+  allowed("backend", bash("git log --oneline"));
 });
 
 test("Bash outside the role's allowlist is denied", () => {
@@ -135,22 +137,19 @@ test("redirects and substitutions are denied", () => {
   denied("frontend", bash("cat `ls`"), reason);
 });
 
-test("git add checks each staged path", () => {
-  allowed("frontend", bash("git add app components/ui lib/supabase"));
-  denied("frontend", bash("git add app supabase"), "agent-guard: frontend may not stage supabase");
-  denied("frontend", bash("git add lib"), "agent-guard: frontend may not stage lib");
-  denied(
-    "backend",
-    bash("git add -- app/page.tsx"),
-    "agent-guard: backend may not stage app/page.tsx",
-  );
+test("an rtk prefix is checked as the command it wraps", () => {
+  allowed("frontend", bash("rtk git status"));
+  allowed("frontend", bash("rtk git diff -- app"));
+  allowed("frontend", bash("pnpm lint && rtk git log --oneline"));
+  for (const command of ["rtk git diff --output=supabase/x.sql", "rtk rtk git status", "rtk pnpm add zod"]) {
+    denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
+  }
 });
 
-test("git add without explicit owned paths is denied", () => {
-  denied("frontend", bash("git add -A"), "agent-guard: frontend may not stage everything");
-  denied("frontend", bash("git add -u"), "agent-guard: frontend may not stage everything");
-  denied("frontend", bash("git add"), "agent-guard: frontend may not stage everything");
-  denied("frontend", bash("git add ."), "agent-guard: frontend may not stage .");
+test("helpers may not stage", () => {
+  for (const command of ["git add app", "git add -- supabase", "git add -A", "git add .", "git -C . add app", "rtk git add app"]) {
+    denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
+  }
 });
 
 test("background operator, process substitution, quotes and escapes are shell features", () => {
@@ -189,6 +188,7 @@ test("allowlisted commands that can run code or write files are denied", () => {
   );
 });
 
+<<<<<<< HEAD
 test("git commit allows only a plain -m message", () => {
   allowed("frontend", bash('git commit -m "feat: add list page"'));
   allowed(
@@ -216,6 +216,28 @@ test("git add cannot reach the excluded generated types", () => {
     "agent-guard: frontend may not stage app/../lib/database.types.ts",
   );
   denied("frontend", bash("git add lib/*"), "agent-guard: frontend may not run: git add lib/*");
+=======
+test("helpers may not commit, even inside a compound command", () => {
+  denied("frontend", bash('git commit -m "feat: x"'), 'agent-guard: frontend may not run: git commit -m "feat: x"');
+  denied(
+    "backend",
+    bash('pnpm db:types && git commit -m "chore: regen types"'),
+    'agent-guard: backend may not run: git commit -m "chore: regen types"',
+  );
+  for (const command of ["GIT commit -m x", "rtk git commit -m x"]) {
+    denied("backend", bash(command), `agent-guard: backend may not run: ${command}`);
+  }
+});
+
+test("helpers may not push, move branches, rewrite history or use gh", () => {
+  for (const command of [
+    "git push", "git push origin agent/x", "rtk git push", "git reset --hard", "git checkout main",
+    "git switch main", "git rebase main", "git merge main", "git stash", "git tag v1",
+    "gh pr create --draft", "gh api user", "rtk gh pr list",
+  ]) {
+    denied("frontend", bash(command), `agent-guard: frontend may not run: ${command}`);
+  }
+>>>>>>> eaa84fb (docs: orchestrator owns git; agent git workflow for VMs)
 });
 
 test("case variants of excluded paths are denied", () => {
