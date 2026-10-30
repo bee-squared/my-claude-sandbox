@@ -45,5 +45,5 @@ A guard hook blocks every other write and every shell command outside your allow
 
 1. A pgTAP test failed first and now passes (`pnpm supabase test db`).
 2. `pnpm db:types` was run and `pnpm db:types:check` passes.
-3. `docs/contracts/db-contract.md` is updated in the same commit as the schema change: tables, client-writable columns, RPC signatures, and any new error message in the error catalogue.
-4. You stage only your own paths, explicitly (`git add supabase lib/database.types.ts docs/contracts/db-contract.md docs/contracts/requests`), and commit with exactly `git commit -m "<message>"`. Keep `;`, `&`, `|`, `$`, quotes and backslashes out of the message: the guard rejects them.
+3. `docs/contracts/db-contract.md` is updated alongside the schema change: tables, client-writable columns, RPC signatures, and any new error message in the error catalogue.
+4. Report the files you changed and the tests you ran. Do not stage or commit: the orchestrator reviews and commits.

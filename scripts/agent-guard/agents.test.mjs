@@ -51,10 +51,7 @@ for (const role of Object.keys(OWNERSHIP)) {
     }
   });
 
-  test(`${role} agent body lists every exact command from the ownership map`, () => {
-    const { body } = readAgent(role);
-    for (const command of OWNERSHIP[role].exact) {
-      assert.ok(body.includes(command), `body is missing ${command}`);
-    }
+  test(`${role} agent body never tells it to stage, commit, push or use gh`, () => {
+    assert.doesNotMatch(readAgent(role).body, /git (add|commit|push)|\bgh /);
   });
 }

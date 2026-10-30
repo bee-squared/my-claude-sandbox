@@ -2,6 +2,7 @@
 // Usage (from agent frontmatter): node guard.mjs <role>  < hook-input.json
 // Exits 2 with the reason on stderr when the call is outside the role.
 // Any other failure also exits 2: Claude Code only blocks on exit 2.
+// Helpers never stage, commit or push: the orchestrator owns git.
 
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,8 +15,6 @@ const deny = (reason) => ({ ok: false, reason: `agent-guard: ${reason}` });
 // the allowlisted commands and each one opens a way around the word-level checks.
 const SHELL_FEATURES = /[<>`$\\']|(?<!&)&(?!&)/;
 const GLOB_CHARS = /[*?[\]{}~]/;
-// The only quoted form allowed: a plain commit message.
-const COMMIT = /^git commit -m "[^"]*"$/;
 
 function relativeInRepo(file, root) {
   if (typeof file !== "string" || file === "") return null;
@@ -32,20 +31,6 @@ function mayWrite(rules, rel) {
   return matches(rel, rules.write) && !matches(rel, rules.exclude);
 }
 
-// A staged path may be a directory: it is owned only if everything under it is.
-function mayStage(rules, rel) {
-  if (matches(rel, rules.exclude)) return false;
-  if (rel !== "" && mayWrite(rules, rel)) return true;
-  const key = rel.toLowerCase();
-  const insideOwnedTree = rules.write.some((glob) => {
-    if (!glob.endsWith("/**")) return false;
-    const base = glob.slice(0, -3);
-    return key === base || key.startsWith(`${base}/`);
-  });
-  const coversExcluded = rules.exclude.some((glob) => glob.startsWith(`${key}/`));
-  return insideOwnedTree && !coversExcluded;
-}
-
 function checkWrite(role, rules, file, root) {
   const rel = relativeInRepo(file, root);
   if (rel === null) return deny(`${role} may not write outside the repo`);
@@ -56,22 +41,6 @@ function checkWrite(role, rules, file, root) {
 const hasPrefix = (segment, prefix) => segment === prefix || segment.startsWith(`${prefix} `);
 const startsWithFlag = (words, flags) =>
   words.some((word) => flags.some((flag) => word.startsWith(flag)));
-
-function checkGitAdd(role, rules, words, root) {
-  const paths = [];
-  let afterDashes = false;
-  for (const word of words.slice(2)) {
-    if (!afterDashes && word === "--") afterDashes = true;
-    else if (!afterDashes && word.startsWith("-")) return deny(`${role} may not stage everything`);
-    else paths.push(word);
-  }
-  if (paths.length === 0) return deny(`${role} may not stage everything`);
-  for (const p of paths) {
-    const rel = relativeInRepo(p, root);
-    if (rel === null || !mayStage(rules, rel)) return deny(`${role} may not stage ${p}`);
-  }
-  return ok;
-}
 
 function supabaseAllowed(supabase, words, root) {
   if (!supabase || words[0] !== "pnpm" || words[1] !== "supabase") return false;
@@ -93,7 +62,6 @@ function supabaseAllowed(supabase, words, root) {
 }
 
 function segmentAllowed(rules, segment, words, root) {
-  if (COMMIT.test(segment)) return true;
   if (segment.includes('"') || GLOB_CHARS.test(segment)) return false;
   if (rules.exact.includes(segment)) return true;
   if (READ_ONLY_BASH.some((prefix) => hasPrefix(segment, prefix))) return true;
@@ -107,15 +75,11 @@ function checkBash(role, rules, command, root) {
   if (SHELL_FEATURES.test(command)) return deny("redirects and substitutions are not allowed");
 
   for (const raw of command.split(/&&|\|\||;|\||\n/)) {
-    const segment = raw.trim().replace(/\s+/g, " ");
+    const shown = raw.trim().replace(/\s+/g, " ");
+    // rtk's hook rewrites commands as `rtk <command>`: check the command it wraps.
+    const segment = shown.startsWith("rtk ") ? shown.slice(4) : shown;
     const words = segment.split(" ");
-    if (hasPrefix(segment, "git add") && !GLOB_CHARS.test(segment) && !segment.includes('"')) {
-      const result = checkGitAdd(role, rules, words, root);
-      if (!result.ok) return result;
-      continue;
-    }
-    if (!segmentAllowed(rules, segment, words, root))
-      return deny(`${role} may not run: ${segment}`);
+    if (!segmentAllowed(rules, segment, words, root)) return deny(`${role} may not run: ${shown}`);
   }
   return ok;
 }
