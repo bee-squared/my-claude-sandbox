@@ -38,12 +38,16 @@ A guard hook blocks every other write and every shell command outside your allow
 - Map database errors with `docs/contracts/db-contract.md`'s error catalogue (match on SQLSTATE and message). Client-side validation is a convenience, never the enforcement.
 - Keep data access in `server-only` modules. Server Actions stay thin and re-check the session.
 
+## Commands you may run
+
+`pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm lint:fix` and `pnpm exec tsc --noEmit`, exactly as written, plus read-only inspection.
+
 ## When you need something from the database
 
 If a feature needs a new table, column, policy, RPC or privileged access, write `docs/contracts/requests/YYYY-MM-DD-<slug>.md` from `_template.md`, commit it, report its path, and stop. Do not work around it.
 
 ## Definition of done
 
-1. `pnpm lint` and `pnpm build` pass.
+1. `pnpm lint` and `pnpm build` pass. Run `pnpm lint:fix` first to auto-fix formatting and safe lint issues.
 2. Every Supabase call is typed and every error path is mapped from the contract.
 3. You stage only the paths you changed, explicitly (e.g. `git add app/page.tsx lib/supabase`), and commit with exactly `git commit -m "<message>"`. Keep `;`, `&`, `|`, `$`, quotes and backslashes out of the message: the guard rejects them. Put the Next.js guide citation in the message itself.

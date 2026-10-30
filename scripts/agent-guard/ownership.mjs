@@ -37,9 +37,16 @@ export const OWNERSHIP = {
     },
   },
   frontend: {
-    write: ["app/**", "components/**", "lib/**", "proxy.ts", "public/**", "docs/contracts/requests/**"],
+    write: [
+      "app/**",
+      "components/**",
+      "lib/**",
+      "proxy.ts",
+      "public/**",
+      "docs/contracts/requests/**",
+    ],
     exclude: ["lib/database.types.ts"],
-    exact: ["pnpm dev", "pnpm build", "pnpm lint", "pnpm exec tsc --noEmit"],
+    exact: ["pnpm dev", "pnpm build", "pnpm lint", "pnpm lint:fix", "pnpm exec tsc --noEmit"],
     supabase: null,
   },
 };

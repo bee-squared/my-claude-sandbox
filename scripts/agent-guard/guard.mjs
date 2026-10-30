@@ -54,7 +54,8 @@ function checkWrite(role, rules, file, root) {
 }
 
 const hasPrefix = (segment, prefix) => segment === prefix || segment.startsWith(`${prefix} `);
-const startsWithFlag = (words, flags) => words.some((word) => flags.some((flag) => word.startsWith(flag)));
+const startsWithFlag = (words, flags) =>
+  words.some((word) => flags.some((flag) => word.startsWith(flag)));
 
 function checkGitAdd(role, rules, words, root) {
   const paths = [];
@@ -96,7 +97,8 @@ function segmentAllowed(rules, segment, words, root) {
   if (segment.includes('"') || GLOB_CHARS.test(segment)) return false;
   if (rules.exact.includes(segment)) return true;
   if (READ_ONLY_BASH.some((prefix) => hasPrefix(segment, prefix))) return true;
-  if (GIT_READ.some((prefix) => hasPrefix(segment, prefix))) return !startsWithFlag(words, GIT_READ_DENY_FLAGS);
+  if (GIT_READ.some((prefix) => hasPrefix(segment, prefix)))
+    return !startsWithFlag(words, GIT_READ_DENY_FLAGS);
   return supabaseAllowed(rules.supabase, words, root);
 }
 
@@ -112,7 +114,8 @@ function checkBash(role, rules, command, root) {
       if (!result.ok) return result;
       continue;
     }
-    if (!segmentAllowed(rules, segment, words, root)) return deny(`${role} may not run: ${segment}`);
+    if (!segmentAllowed(rules, segment, words, root))
+      return deny(`${role} may not run: ${segment}`);
   }
   return ok;
 }
