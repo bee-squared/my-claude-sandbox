@@ -189,6 +189,55 @@ test("allows inline all-type supabase-js import", () => {
   );
 });
 
+test("allows type-only imports and exports containing comments", () => {
+  for (const source of [
+    'import { type A, /* note */ type B } from "@supabase/supabase-js";\n',
+    'import { /* note */ type A } from "@supabase/supabase-js";\n',
+    'import { type /* note */ A } from "@supabase/supabase-js";\n',
+    'import { type A as /* note */ B } from "@supabase/supabase-js";\n',
+    'import { type A, // note\n  type B } from "@supabase/supabase-js";\n',
+    'import { /** doc **/ type A, /***/ type B } from "@supabase/supabase-js";\n',
+    'import /* note */ type { A } from "@supabase/supabase-js";\n',
+    'import type /* note */ { A } from "@supabase/supabase-js";\n',
+    'export { type A, /* note */ type B } from "@supabase/supabase-js";\n',
+    'export /* note */ type { A } from "@supabase/supabase-js";\n',
+  ]) {
+    allows("lib/probe.ts", source, IMPORT_MSG);
+  }
+});
+
+test("allows type-only forms without whitespace or with unusual names", () => {
+  for (const source of [
+    'import type{ A } from "@supabase/supabase-js";\n',
+    'export type{ A } from "@supabase/supabase-js";\n',
+    'import type from from "@supabase/supabase-js";\n',
+    'import { type "a-b" as C } from "@supabase/supabase-js";\n',
+  ]) {
+    allows("lib/probe.ts", source, IMPORT_MSG);
+  }
+});
+
+test("denies a default import named type", () => {
+  denies("lib/probe.ts", 'import type from "@supabase/supabase-js";\ntype;\n', IMPORT_MSG);
+  denies("lib/probe.ts", 'import /* note */ type from "@supabase/supabase-js";\n', IMPORT_MSG);
+});
+
+test("denies runtime imports and exports hidden by comments", () => {
+  for (const source of [
+    'import { type A, /* note */ createClient } from "@supabase/supabase-js";\n',
+    'import { /* type A */ createClient } from "@supabase/supabase-js";\n',
+    'import { type A, // type B\n  createClient } from "@supabase/supabase-js";\n',
+    'import /* a */ D, /* b */ { type A } from "@supabase/supabase-js";\n',
+    'import { /* a */ createClient, /* b */ type A } from "@supabase/supabase-js";\n',
+    'import /* type { */ D from "@supabase/supabase-js";\n',
+    'import // type {\n  D from "@supabase/supabase-js";\n',
+    'export /* note */ { createClient } from "@supabase/supabase-js";\n',
+    'export /* type { */ { createClient } from "@supabase/supabase-js";\n',
+  ]) {
+    denies("lib/probe.ts", source, IMPORT_MSG);
+  }
+});
+
 test("allows type-only export-from", () => {
   allows("lib/probe.ts", 'export type { User } from "@supabase/supabase-js";\n', IMPORT_MSG);
 });

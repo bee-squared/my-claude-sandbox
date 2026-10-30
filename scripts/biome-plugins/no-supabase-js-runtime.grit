@@ -1,3 +1,8 @@
+// Biome's GritQL can't read the `type` keyword from the syntax tree, so these regexes parse the
+// statement text. Between tokens they accept whitespace or exactly one whole comment:
+//   (?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)
+// Keep it this strict. A looser `/\*[\s\S]*?\*/` can span real bindings, so
+// `import /* */ D, /* */ { type A }` would pass as type-only.
 or {
   JsImport(),
   JsExport()
@@ -8,11 +13,12 @@ or {
   },
   $e <: or {
     r"import[\s\S]*",
-    r"export\s*[*{][\s\S]*"
+    r"export(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*[*{][\s\S]*"
   },
   $e <: not or {
-    r"(?:import|export)\s+type\s[\s\S]*",
-    r"(?:import|export)\s*\{\s*(?:type\s+[\w$]+(?:\s+as\s+[\w$]+)?\s*,?\s*)+\}[\s\S]*"
+    r"(?:import|export)(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*type(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*[{*][\s\S]*",
+    r"import(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*type(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)+[\w$]+(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)+from\b[\s\S]*",
+    r"(?:import|export)(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*\{(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*(?:type(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)+(?:[\w$]+|\"[^\"]*\"|'[^']*')(?:(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)+as(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)+(?:[\w$]+|\"[^\"]*\"|'[^']*'))?(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*,?(?:\s|/\*(?:[^*]|\*+[^*/])*\*+/|//[^\n]*\n)*)+\}[\s\S]*"
   },
   register_diagnostic(span=$e, message="Use @supabase/ssr clients from @/lib/supabase", severity="error")
 }
