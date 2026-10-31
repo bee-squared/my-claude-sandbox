@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Agent git workflow
 
-These rules apply inside a Docker Sandbox VM, running as the agent GitHub account.
+These rules apply inside an agent VM (Docker Sandbox or Vercel Sandbox), running as the agent GitHub account.
 On the user's Mac, never commit or push: suggest a commit message instead.
 
 - Only the orchestrator (main session) runs git add, commit, push and gh.
