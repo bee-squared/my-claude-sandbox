@@ -1,5 +1,8 @@
 ## What changed
 
+<!-- ai-summary:start -->
+<!-- ai-summary:end -->
+
 ## Why
 
 ## Tests run
