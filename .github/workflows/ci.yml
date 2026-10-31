@@ -27,5 +27,5 @@ jobs:
           cache: true
       - run: pnpm lint
       - run: pnpm exec tsc --noEmit
-      - run: pnpm test
+      - run: pnpm test:guard
       - run: pnpm build
